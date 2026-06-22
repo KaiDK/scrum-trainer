@@ -12,7 +12,7 @@
 
   // ---------- Anwendungszustand ----------
   var state = {
-    screen: "start",      // "start" | "quiz" | "result"
+    screen: "start",      // "start" | "quiz" | "presubmit" | "result"
     certKey: null,        // "psm" | "pspo"
     questions: [],        // ausgewählte 15 Fragen
     optionOrder: [],      // optionOrder[i] = gemischte Original-Schlüssel der Optionen
@@ -190,7 +190,7 @@
         '<div class="nav-row">' +
           '<button class="btn btn-ghost" id="prev-btn"' + (idx === 0 ? " disabled" : "") + '>← Zurück</button>' +
           (isLast
-            ? '<button class="btn btn-success" id="finish-btn">Quiz abschließen ✓</button>'
+            ? '<button class="btn btn-primary" id="review-btn">Antworten prüfen →</button>'
             : '<button class="btn btn-primary" id="next-btn">Weiter →</button>') +
         '</div>' +
         '<div class="dots">' + dotsHtml + '</div>' +
@@ -207,8 +207,8 @@
     if (prevBtn) prevBtn.addEventListener("click", function () { goTo(idx - 1); });
     var nextBtn = document.getElementById("next-btn");
     if (nextBtn) nextBtn.addEventListener("click", function () { goTo(idx + 1); });
-    var finishBtn = document.getElementById("finish-btn");
-    if (finishBtn) finishBtn.addEventListener("click", finishQuiz);
+    var reviewBtn = document.getElementById("review-btn");
+    if (reviewBtn) reviewBtn.addEventListener("click", enterPresubmit);
 
     Array.prototype.forEach.call(root.querySelectorAll(".dot-btn"), function (btn) {
       btn.addEventListener("click", function () {
@@ -232,15 +232,133 @@
       if (arr.indexOf(l) !== -1) opt.classList.add("selected");
       else opt.classList.remove("selected");
     });
-    // Dot als beantwortet markieren
+    // Dot als beantwortet markieren (bzw. bei vollständiger Abwahl wieder leeren)
     var dot = root.querySelector('.dot-btn[data-goto="' + idx + '"]');
-    if (dot && arr.length > 0) dot.classList.add("answered");
+    if (dot) {
+      if (arr.length > 0) dot.classList.add("answered");
+      else dot.classList.remove("answered");
+    }
+    // Offen-Hinweis in der Durchsicht aktualisieren (falls sichtbar)
+    updateUnansweredNote();
   }
 
   function goTo(i) {
     if (i < 0 || i >= state.questions.length) return;
     state.current = i;
     renderQuiz();
+  }
+
+  // ====================================================================
+  //  DURCHSICHT VOR ABGABE (presubmit) – eigene Antworten prüfen/ändern,
+  //  ohne Lösungen. Die Stoppuhr läuft weiter, bis endgültig abgegeben wird.
+  // ====================================================================
+  function countUnanswered() {
+    var n = 0;
+    for (var i = 0; i < state.questions.length; i++) {
+      if (!state.answers[i] || state.answers[i].length === 0) n++;
+    }
+    return n;
+  }
+
+  function updateUnansweredNote() {
+    var note = document.getElementById("unanswered-note");
+    if (!note) return;
+    var n = countUnanswered();
+    note.classList.toggle("warn", n > 0);
+    note.classList.toggle("ok", n === 0);
+    note.textContent = n > 0
+      ? "Noch " + n + " von " + state.questions.length + " Fragen unbeantwortet"
+      : "Alle Fragen beantwortet ✓";
+  }
+
+  function enterPresubmit() {
+    state.current = 0;
+    state.screen = "presubmit";
+    render();
+  }
+
+  function goToPresubmit(i) {
+    if (i < 0 || i >= state.questions.length) return;
+    state.current = i;
+    renderPresubmit();
+  }
+
+  function renderPresubmit() {
+    var total = state.questions.length;
+    var idx = state.current;
+    var q = state.questions[idx];
+    var cert = QUIZ_DATA[state.certKey];
+    var selected = state.answers[idx] || [];
+
+    var order = state.optionOrder[idx];
+    var optionsHtml = order.map(function (letter, pos) {
+      var checked = selected.indexOf(letter) !== -1;
+      var inputType = q.multiple ? "checkbox" : "radio";
+      var label = positionLetter(pos);
+      return (
+        '<label class="option' + (checked ? " selected" : "") + '" data-letter="' + letter + '">' +
+          '<input type="' + inputType + '" name="opt" value="' + letter + '"' + (checked ? " checked" : "") + ' />' +
+          '<span class="opt-text"><span class="opt-letter">' + label + ')</span> ' + escapeHtml(q.options[letter]) + '</span>' +
+        '</label>'
+      );
+    }).join("");
+
+    var hint = q.multiple ? '<span class="q-hint">Mehrere Antworten möglich</span>' : "";
+
+    var dotsHtml = state.questions.map(function (_, i) {
+      var cls = "dot-btn";
+      if (i === idx) cls += " current";
+      else if ((state.answers[i] || []).length > 0) cls += " answered";
+      return '<button class="' + cls + '" data-goto="' + i + '">' + (i + 1) + '</button>';
+    }).join("");
+
+    var unanswered = countUnanswered();
+    var noteCls = unanswered > 0 ? "warn" : "ok";
+    var noteTxt = unanswered > 0
+      ? "Noch " + unanswered + " von " + total + " Fragen unbeantwortet"
+      : "Alle Fragen beantwortet ✓";
+
+    root.innerHTML =
+      '<div class="card">' +
+        '<div class="quiz-bar">' +
+          '<span class="badge">' + escapeHtml(cert.shortName) + '</span>' +
+          '<span class="timer"><span class="dot"></span><span id="timer-val">' + formatTime(elapsedSeconds()) + '</span></span>' +
+        '</div>' +
+        '<div class="presubmit-banner">Durchsicht – prüfe und ändere deine Antworten. Die Lösungen siehst du erst nach der Abgabe.</div>' +
+        '<div class="q-count">Frage ' + (idx + 1) + ' von ' + total + '</div>' +
+        '<h2 class="q-text">' + escapeHtml(q.question) + '</h2>' +
+        hint +
+        '<div class="options">' + optionsHtml + '</div>' +
+        '<div class="nav-row">' +
+          '<button class="btn btn-ghost" id="prev-btn"' + (idx === 0 ? " disabled" : "") + '>← Zurück</button>' +
+          '<button class="btn btn-primary" id="next-btn"' + (idx === total - 1 ? " disabled" : "") + '>Weiter →</button>' +
+        '</div>' +
+        '<div class="dots">' + dotsHtml + '</div>' +
+        '<div class="submit-row">' +
+          '<p id="unanswered-note" class="' + noteCls + '">' + noteTxt + '</p>' +
+          '<button class="btn btn-success btn-block" id="submit-btn">Endgültig abgeben &amp; auswerten ✓</button>' +
+        '</div>' +
+      '</div>';
+
+    // Antwort-Auswahl (editierbar)
+    Array.prototype.forEach.call(root.querySelectorAll(".option input"), function (input) {
+      input.addEventListener("change", function () {
+        selectAnswer(idx, input.value, q.multiple);
+      });
+    });
+
+    var prevBtn = document.getElementById("prev-btn");
+    if (prevBtn) prevBtn.addEventListener("click", function () { goToPresubmit(idx - 1); });
+    var nextBtn = document.getElementById("next-btn");
+    if (nextBtn) nextBtn.addEventListener("click", function () { goToPresubmit(idx + 1); });
+
+    Array.prototype.forEach.call(root.querySelectorAll(".dot-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        goToPresubmit(parseInt(btn.getAttribute("data-goto"), 10));
+      });
+    });
+
+    document.getElementById("submit-btn").addEventListener("click", finishQuiz);
   }
 
   function finishQuiz() {
@@ -406,6 +524,7 @@
   function render() {
     if (state.screen === "start") renderStart();
     else if (state.screen === "quiz") renderQuiz();
+    else if (state.screen === "presubmit") renderPresubmit();
     else if (state.screen === "result") renderResult();
   }
 

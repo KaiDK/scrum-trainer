@@ -268,6 +268,32 @@ body {
 .btn-success:hover { filter: brightness(0.95); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* ---------- Durchsicht vor Abgabe ---------- */
+.presubmit-banner {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+.submit-row {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+  text-align: center;
+}
+#unanswered-note {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+#unanswered-note.warn { color: var(--wrong); }
+#unanswered-note.ok { color: var(--correct); }
+.btn-block { width: 100%; max-width: 360px; }
+
 /* ---------- Question dots ---------- */
 .dots {
   display: flex;

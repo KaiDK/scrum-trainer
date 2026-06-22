@@ -15,6 +15,8 @@ Eine reine In-Browser-App (kein Server nötig) zum Üben der Zertifizierungen
 - Reihenfolge der Antwortmöglichkeiten wird je Frage zufällig gemischt
 - Stoppuhr (MM:SS) ab Quizstart
 - Vor-/Zurück-Navigation und direkter Sprung über Frage-Nummern
+- Durchsicht vor der Abgabe: alle eigenen Antworten frei durchnavigieren und
+  noch ändern (Lösungen erscheinen erst nach der endgültigen Abgabe)
 - Ergebnis mit Trefferquote (Score + %), benötigter Zeit und Ø-Zeit pro Frage
   im Vergleich zum Richtwert von 00:45
 - Durchsicht aller Fragen nach dem Quiz: richtig/falsch markiert inkl. Erläuterung
