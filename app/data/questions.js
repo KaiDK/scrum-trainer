@@ -3,7 +3,6 @@
  *
  * Single Source of Truth für die App. Wird per <script>-Tag geladen, damit die
  * App auch ohne Server (per Doppelklick / file://) funktioniert.
- * Die reine JSON-Datei (questions.json) wird aus dieser Datei generiert.
  *
  * Struktur:
  *   QUIZ_DATA[zertifizierung].questions[] = {
@@ -833,7 +832,7 @@ const QUIZ_DATA = {
 if (typeof window !== "undefined") {
   window.QUIZ_DATA = QUIZ_DATA;
 }
-// Node-Nutzung (zum Generieren von questions.json).
+// Node-Nutzung (z. B. für Tests/Skripte).
 if (typeof module !== "undefined" && module.exports) {
   module.exports = QUIZ_DATA;
 }

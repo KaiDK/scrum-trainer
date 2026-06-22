@@ -15,7 +15,8 @@
     screen: "start",      // "start" | "quiz" | "result"
     certKey: null,        // "psm" | "pspo"
     questions: [],        // ausgewählte 15 Fragen
-    answers: [],          // answers[i] = Array der gewählten Buchstaben
+    optionOrder: [],      // optionOrder[i] = gemischte Original-Schlüssel der Optionen
+    answers: [],          // answers[i] = Array der gewählten (Original-)Buchstaben
     current: 0,           // aktueller Frage-Index (Quiz)
     reviewIndex: 0,       // aktueller Index in der Ergebnis-Durchsicht
     startTime: null,
@@ -45,6 +46,16 @@
     return copy.slice(0, n);
   }
 
+  // Komplettes Array zufällig mischen
+  function shuffle(arr) {
+    return pickRandom(arr, arr.length);
+  }
+
+  // Anzeige-Buchstabe nach Position (0 -> A, 1 -> B, ...)
+  function positionLetter(pos) {
+    return String.fromCharCode(65 + pos);
+  }
+
   function sameAnswer(a, b) {
     if (a.length !== b.length) return false;
     var x = a.slice().sort();
@@ -69,10 +80,6 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-
-  function optionLetters(q) {
-    return Object.keys(q.options); // bewahrt A,B,C,D-Reihenfolge
   }
 
   // ---------- Timer ----------
@@ -127,6 +134,10 @@
   function startQuiz(certKey) {
     state.certKey = certKey;
     state.questions = pickRandom(QUIZ_DATA[certKey].questions, QUESTIONS_PER_QUIZ);
+    // Antwortreihenfolge je Frage einmal mischen – bleibt über Navigation/Durchsicht stabil
+    state.optionOrder = state.questions.map(function (q) {
+      return shuffle(Object.keys(q.options));
+    });
     state.answers = state.questions.map(function () { return []; });
     state.current = 0;
     state.screen = "quiz";
@@ -142,13 +153,15 @@
     var selected = state.answers[idx] || [];
     var progressPct = Math.round(((idx + 1) / total) * 100);
 
-    var optionsHtml = optionLetters(q).map(function (letter) {
+    var order = state.optionOrder[idx];
+    var optionsHtml = order.map(function (letter, pos) {
       var checked = selected.indexOf(letter) !== -1;
       var inputType = q.multiple ? "checkbox" : "radio";
+      var label = positionLetter(pos);
       return (
         '<label class="option' + (checked ? " selected" : "") + '" data-letter="' + letter + '">' +
           '<input type="' + inputType + '" name="opt" value="' + letter + '"' + (checked ? " checked" : "") + ' />' +
-          '<span class="opt-text"><span class="opt-letter">' + letter + ')</span> ' + escapeHtml(q.options[letter]) + '</span>' +
+          '<span class="opt-text"><span class="opt-letter">' + label + ')</span> ' + escapeHtml(q.options[letter]) + '</span>' +
         '</label>'
       );
     }).join("");
@@ -265,6 +278,16 @@
     var ringStyle =
       "background: conic-gradient(" + ringColor + " " + (pct * 3.6) + "deg, var(--surface-muted) 0deg);";
 
+    // Durchschnittliche Zeit pro Frage, verglichen mit dem geforderten Richtwert (00:45)
+    var TARGET_PER_Q = 45;
+    var avgPerQ = total > 0 ? Math.round(state.elapsedAtFinish / total) : 0;
+    var underTarget = avgPerQ <= TARGET_PER_Q;
+    var avgColor = underTarget ? "var(--correct)" : "var(--wrong)";
+    var diff = Math.abs(avgPerQ - TARGET_PER_Q);
+    var paceText = underTarget
+      ? "⏱ " + formatTime(avgPerQ) + " pro Frage – " + diff + " s schneller als der Richtwert von 00:45."
+      : "⏱ " + formatTime(avgPerQ) + " pro Frage – " + diff + " s langsamer als der Richtwert von 00:45.";
+
     root.innerHTML =
       '<div class="card">' +
         '<div class="result-head">' +
@@ -283,7 +306,9 @@
           '<div class="stat"><div class="stat-val">' + score + ' / ' + total + '</div><div class="stat-label">Richtige Antworten</div></div>' +
           '<div class="stat"><div class="stat-val">' + pct + '%</div><div class="stat-label">Trefferquote</div></div>' +
           '<div class="stat"><div class="stat-val">' + formatTime(state.elapsedAtFinish) + '</div><div class="stat-label">Benötigte Zeit</div></div>' +
+          '<div class="stat"><div class="stat-val" style="color:' + avgColor + '">' + formatTime(avgPerQ) + '</div><div class="stat-label">Ø/Frage · Ziel 00:45</div></div>' +
         '</div>' +
+        '<p class="pace-note" style="color:' + avgColor + '">' + paceText + '</p>' +
         '<div class="result-actions">' +
           '<button class="btn btn-primary" id="retry-btn">Neues Quiz (' + escapeHtml(cert.shortName) + ')</button>' +
           '<button class="btn btn-ghost" id="home-btn">Zertifizierung wechseln</button>' +
@@ -316,16 +341,18 @@
     var userAns = state.answers[i] || [];
     var correct = isCorrect(i);
 
-    var optionsHtml = optionLetters(q).map(function (letter) {
+    var order = state.optionOrder[i];
+    var optionsHtml = order.map(function (letter, pos) {
       var isRight = q.correct.indexOf(letter) !== -1;
       var isPicked = userAns.indexOf(letter) !== -1;
+      var label = positionLetter(pos);
       var cls = "option";
       var tag = "";
       if (isRight) { cls += " correct"; tag = '<span class="tag">Richtig</span>'; }
       else if (isPicked) { cls += " wrong"; tag = '<span class="tag">Deine Wahl</span>'; }
       return (
         '<div class="' + cls + '">' +
-          '<span class="opt-text"><span class="opt-letter">' + letter + ')</span> ' + escapeHtml(q.options[letter]) + '</span>' +
+          '<span class="opt-text"><span class="opt-letter">' + label + ')</span> ' + escapeHtml(q.options[letter]) + '</span>' +
           tag +
         '</div>'
       );

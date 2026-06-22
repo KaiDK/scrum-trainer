@@ -12,9 +12,11 @@ Eine reine In-Browser-App (kein Server nötig) zum Üben der Zertifizierungen
 ### Funktionen
 - Auswahl der Zertifizierung (PSM I oder PSPO I)
 - 15 zufällige Fragen aus je 50 pro Durchlauf
+- Reihenfolge der Antwortmöglichkeiten wird je Frage zufällig gemischt
 - Stoppuhr (MM:SS) ab Quizstart
 - Vor-/Zurück-Navigation und direkter Sprung über Frage-Nummern
-- Ergebnis mit Trefferquote (Score + %) und benötigter Zeit
+- Ergebnis mit Trefferquote (Score + %), benötigter Zeit und Ø-Zeit pro Frage
+  im Vergleich zum Richtwert von 00:45
 - Durchsicht aller Fragen nach dem Quiz: richtig/falsch markiert inkl. Erläuterung
 - Erkennt „Choose all that apply"-Fragen automatisch (Mehrfachauswahl)
 
@@ -32,10 +34,8 @@ app/
   index.html          UI-Gerüst
   css/styles.css      Styles
   js/app.js           App-Logik (Quiz, Timer, Auswertung)
-  data/questions.js   Fragendaten (Single Source of Truth, offline-fähig)
-  data/questions.json Identische Fragendaten als reines JSON
+  data/questions.js   Fragendaten als JSON-Objekt (offline-fähig per <script>)
 ```
 
-Die Fragen stammen aus `concept/1a_Übungsfragen PSM I und PSPO I.md`.
-`questions.json` wird aus `questions.js` generiert, damit beide nicht
-auseinanderlaufen.
+Die Fragen stammen aus `concept/1a_Übungsfragen PSM I und PSPO I.md` und liegen in
+`questions.js` als strukturiertes JSON-Objekt vor.
