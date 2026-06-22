@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scrum Trainer – PSM I & PSPO I</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1 class="app-title">Scrum&nbsp;Trainer</h1>
+      <p class="app-subtitle">Übungsfragen für PSM I &amp; PSPO I</p>
+    </header>
+
+    <main id="screen" class="screen-container">
+      <!-- Inhalt wird per JavaScript gerendert -->
+    </main>
+
+    <footer class="app-footer">
+      <p>
+        Eigenständige Übungsfragen im Stil der Scrum.org-Assessments – keine Originalfragen.
+        Maßgeblich ist der offizielle Scrum&nbsp;Guide 2020.
+      </p>
+    </footer>
+  </div>
+
+  <!-- Daten zuerst (Single Source of Truth, offline-fähig), dann App-Logik -->
+  <script src="data/questions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
